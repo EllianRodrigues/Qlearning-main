@@ -64,8 +64,8 @@ while True:
 
         # Atualiza epsilon
         epsilon = max(min_epsilon, epsilon * decay_rate)
-        # if epsilon == min_epsilon:
-        #    epsilon = 0.5  # reinicia se chegar no mínimo
+        if epsilon == min_epsilon:
+            epsilon = 0.5  # reinicia se chegar no mínimo
 
         # Termina episódio se morrer ou chegar no objetivo
         if reward == -100:
