@@ -25,7 +25,7 @@ successes = 0
 episodes = 0
 
 while True:
-    print(f"\n🔄 Iniciando episódio {episodes + 1}")
+    print(f"\n Iniciando episódio {episodes + 1}")
     state = 0
     reward = -14
     total_reward = 0
@@ -64,15 +64,15 @@ while True:
 
         # Atualiza epsilon
         epsilon = max(min_epsilon, epsilon * decay_rate)
-        if epsilon == min_epsilon:
-            epsilon = 0.5  # reinicia se chegar no mínimo
+        # if epsilon == min_epsilon:
+        #    epsilon = 0.5  # reinicia se chegar no mínimo
 
         # Termina episódio se morrer ou chegar no objetivo
         if reward == -100:
-            print("💀 Personagem morreu.")
+            print("Personagem morreu")
             break
         elif reward == 300:
-            print("🎉 Objetivo atingido!")
+            print("Objetivo atingido!")
             successes += 1
             break
 
@@ -80,7 +80,7 @@ while True:
     np.savetxt('resultado.txt', utility_matrix, fmt="%.6f")
 
     episodes += 1
-    print(f"🎯 Episódios finalizados: {episodes} | Sucessos: {successes} | Taxa de acerto: {(successes / episodes) * 100:.2f}%")
+    print(f"Episódios finalizados: {episodes} | Sucessos: {successes} | Taxa de acerto: {(successes / episodes) * 100:.2f}%")
 
 '''
 # Script de teste com a Q-table aprendida
@@ -93,7 +93,7 @@ server_socket = connect(2037)
 
 # Carrega a Q-table aprendida
 utility_matrix = np.loadtxt('resultado.txt')
-print("✅ Q-table carregada com sucesso para simulação.")
+print("Q-table carregada com sucesso para simulação.")
 
 np.set_printoptions(precision=6)
 actions = ["left", "right", "jump"]
@@ -104,14 +104,14 @@ max_episodes = 20
 successes = 0
 
 for episode in range(max_episodes):
-    print(f"\n🔁 Episódio {episode + 1}")
+    print(f"\nEpisódio {episode + 1}")
     state = 0
     reward = -14
     steps = 0
 
     while True:
-        print(f"\n📍 Estado atual: {state}")
-        print(f"🎯 Ação escolhida: ", end="")
+        print(f"\n Estado atual: {state}")
+        print(f"Ação escolhida: ", end="")
 
         # Escolhe a melhor ação segundo a Q-table
         action_index = np.argmax(utility_matrix[state])
@@ -119,23 +119,23 @@ for episode in range(max_episodes):
         print(f"{action}")
 
         state_info, reward = get_state_reward(server_socket, action)
-        print(f"🏅 Recompensa: {reward}, Novo estado (binário): {state_info}")
+        print(f"Recompensa: {reward}, Novo estado (binário): {state_info}")
 
         next_state = int(state_info[2:], 2)
         state = next_state
         steps += 1
 
         if reward == 300:
-            print(f"\n✅ Objetivo atingido em {steps} passos!")
+            print(f"\nObjetivo atingido em {steps} passos!")
             successes += 1
             break
 
         if reward == -100:
-            print(f"\n💀 Personagem morreu após {steps} passos.")
+            print(f"\nPersonagem morreu após {steps} passos.")
             break
 
 # Resultado final
-print("\n📊 RESULTADO DA SIMULAÇÃO FINAL")
+print("\nRESULTADO DA SIMULAÇÃO FINAL")
 print(f"Total de episódios: {max_episodes}")
 print(f"Total de sucessos (chegou ao objetivo): {successes}")
 print(f"Porcentagem de sucesso: {(successes / max_episodes) * 100:.2f}%")
