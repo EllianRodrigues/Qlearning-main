@@ -1,3 +1,4 @@
+
 from connection import connect, get_state_reward
 import random
 import numpy as np
@@ -7,7 +8,7 @@ server_socket = connect(2037)
 
 # Carrega a Q-table existente
 utility_matrix = np.loadtxt('resultado.txt')
-print("✅ Matriz de utilidade carregada.")
+print("Matriz de utilidade carregada")
 
 np.set_printoptions(precision=6)
 
@@ -93,7 +94,7 @@ server_socket = connect(2037)
 
 # Carrega a Q-table aprendida
 utility_matrix = np.loadtxt('resultado.txt')
-print("Q-table carregada com sucesso para simulação.")
+print("Q-table carregada com sucesso para simulação")
 
 np.set_printoptions(precision=6)
 actions = ["left", "right", "jump"]
@@ -110,7 +111,7 @@ for episode in range(max_episodes):
     steps = 0
 
     while True:
-        print(f"\n Estado atual: {state}")
+        print(f"\nEstado atual: {state}")
         print(f"Ação escolhida: ", end="")
 
         # Escolhe a melhor ação segundo a Q-table
@@ -131,7 +132,7 @@ for episode in range(max_episodes):
             break
 
         if reward == -100:
-            print(f"\nPersonagem morreu após {steps} passos.")
+            print(f"\nPersonagem morreu após {steps} passos")
             break
 
 # Resultado final
