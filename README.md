@@ -1,93 +1,122 @@
-# Q-Learning
+# Q-Learning – Projeto de Aprendizado por Reforço
 
-Este projeto implementa o algoritmo de aprendizado por reforço **Q-Learning** para controlar o personagem **Amongois** em um jogo. O objetivo do agente é aprender o melhor caminho para alcançar o bloco preto (objetivo final) enquanto minimiza as penalidades (recompensas negativas).
-
----
-
-## **Como Iniciar o Jogo**
-
-1. **Abrir o Executável do Jogo:**
-   - Navegue até a pasta onde o executável do jogo está localizado.
-   - Abra o arquivo `.exe` para iniciar o servidor do jogo.
-
-2. **Executar o Algoritmo:**
-   - Certifique-se de que o arquivo `client.py` está configurado corretamente.
-   - No terminal, execute o seguinte comando:
-     ```bash
-     python client.py
-     ```
-
-3. O agente começará a interagir com o jogo automaticamente, aprendendo o melhor caminho para alcançar o objetivo.
+Este projeto implementa o algoritmo **Q-Learning** para ensinar um agente a controlar o personagem **Amongois** em um jogo. O objetivo é que o agente aprenda, por tentativa e erro, o melhor caminho para alcançar o **bloco preto**, evitando quedas e minimizando penalidades.
 
 ---
 
-## **Como Funciona o Algoritmo**
+## Como Executar o Projeto
 
-O algoritmo utiliza o método **Q-Learning**, que funciona da seguinte forma:
+### 1. Inicie o Jogo
 
-1. **Estados e Ações:**
-   - O estado é representado como um vetor binário que indica a plataforma em que o personagem está e a direção para a qual ele está virado.
-   - O agente pode realizar três ações:
-     - `"left"`: Girar para a esquerda.
-     - `"right"`: Girar para a direita.
-     - `"jump"`: Pular para a frente.
+- Navegue até a pasta onde o executável do jogo está localizado.
+- Abra o arquivo `.exe` para iniciar o servidor local do jogo.
 
-2. **Recompensas:**
-   - O jogo retorna recompensas negativas (`-1` a `-14`) com base no estado resultante da ação.
-   - O objetivo do agente é minimizar essas penalidades e alcançar o bloco preto.
+> Isso abrirá uma janela com o ambiente do jogo. O agente será controlado pelo script Python via socket.
 
-3. **Q-Table (Matriz de Utilidade):**
-   - A matriz de utilidade armazena os valores Q para cada combinação de estado e ação.
-   - O agente atualiza os valores Q usando a **Equação de Bellman**:
-     \[
-     Q(s, a) \leftarrow Q(s, a) + \alpha \left[ r + \gamma \max_a Q(s', a) - Q(s, a) \right]
-     \]
-     - `s`: Estado atual.
-     - `a`: Ação tomada.
-     - `r`: Recompensa recebida.
-     - `s'`: Próximo estado.
-     - `\alpha`: Taxa de aprendizado.
-     - `\gamma`: Fator de desconto.
+### 2. Execute o Script de Treinamento
 
-4. **Exploração e Exploração:**
-   - O agente escolhe ações com base na política **epsilon-greedy**:
-     - Com probabilidade `epsilon`, escolhe uma ação aleatória (exploração).
-     - Caso contrário, escolhe a melhor ação com base na Q-Table (exploração).
+- No terminal, com o ambiente Python ativado, execute:
+
+```bash
+python treinamento.py
+```
+
+O script irá:
+
+- Conectar ao servidor do jogo.
+- Carregar (ou continuar atualizando) a Q-table salva no arquivo `resultado.txt`.
+- Treinar o agente através de episódios infinitos até ser interrompido manualmente.
+- Salvar a Q-table a cada episódio no arquivo `resultado.txt`.
+
+> O próprio arquivo `treinamento.py` contém, ao final, um script de simulação comentado. Basta descomentar para testar a política aprendida (com `epsilon = 0`) sem mais treinamento.
 
 ---
 
-## **Arquivos do Projeto**
+## Como Funciona o Q-Learning
 
-- **`client.py`:** Implementação do algoritmo Q-Learning. Este arquivo controla o agente e realiza a comunicação com o servidor do jogo.
-- **`connection.py`:** Fornece as funções para conectar ao servidor (`connect`) e enviar ações/receber estados e recompensas (`get_state_reward`).
-- **`resultado.txt`:** Arquivo onde a matriz de utilidade (Q-Table) é salva. Ele é criado automaticamente na primeira execução do `client.py`.
+O Q-Learning é uma técnica de **aprendizado por reforço**. O agente interage com o ambiente e aprende, por tentativa e erro, a melhor ação a tomar em cada estado com base nas recompensas que recebe.
+
+A estratégia segue a equação de Bellman:
+
+```
+Q(s, a) ← (1 - α) * Q(s, a) + α * (reward + γ * max(Q(s', a')))
+```
+
+- `α` (alpha): taxa de aprendizado — quanto o agente aprende a cada iteração.
+- `γ` (gamma): fator de desconto — quanto ele valoriza recompensas futuras.
+- `reward`: recompensa recebida pela ação.
+- `s` / `s'`: estado atual e estado seguinte.
+- `a`: ação tomada.
+
+O agente usa uma **Q-table** para armazenar o valor esperado de cada ação em cada estado. Com o tempo, ele aprende quais ações o levam mais rapidamente ao objetivo (recompensa +300) e evita caminhos que levam à morte (recompensa -100).
 
 ---
 
-## **Hiperparâmetros do Algoritmo**
+## Estratégia de Aprendizado
 
-Os hiperparâmetros controlam o comportamento do aprendizado:
+- **Estados** são representados por números inteiros (convertidos do binário do jogo que indica a posição e direção do personagem).
+- **Ações disponíveis:** `"left"`, `"right"` e `"jump"`.
+- **Recompensas:**
+  - Recompensas negativas (ex: `-14`) se o personagem avança sem sucesso.
+  - Recompensa positiva de `300` se alcançar o objetivo.
+  - Recompensa de `-100` se morrer (cair no vazio).
 
-- **`learning_rate` (α):** Taxa de aprendizado. Controla o quanto o agente aprende com novas informações. Valor padrão: `0.02`.
-- **`discount_rate` (γ):** Fator de desconto. Determina a importância das recompensas futuras. Valor padrão: `0.5`.
-- **`exploration_rate` (ε):** Taxa de exploração. Controla a probabilidade de o agente explorar ações aleatórias. Valor inicial: `0.9` (com decaimento gradual).
+### Política Epsilon-Greedy:
+
+- O agente escolhe uma ação aleatória com probabilidade `epsilon` (exploração).
+- Caso contrário, escolhe a melhor ação segundo a Q-table (exploração).
+
+### Decaimento e Reinício de `epsilon`:
+
+- `epsilon` começa em `0.2` e decai gradualmente (`decay_rate = 0.995`) até `0.05`.
+- Quando chega ao mínimo, ele é **reiniciado para `0.5`**, permitindo novas explorações e evitando estagnação.
 
 ---
 
-## **Fluxo do Algoritmo**
+## 🗂️ Arquivos do Projeto
 
-1. **Conexão com o Servidor:**
-   - O `client.py` conecta ao servidor do jogo usando a função `connect`.
+| Arquivo         | Descrição |
+|------------------|-----------|
+| `treinamento.py` | Script principal que realiza o treinamento do agente. Inclui, ao final, um bloco comentado com o modo de simulação para avaliação da política aprendida. |
+| `connection.py`  | Interface com o jogo: conecta ao servidor e envia/recebe ações e estados. |
+| `resultado.txt`  | Arquivo com a Q-table aprendida. Salvo e atualizado automaticamente após cada episódio. |
 
-2. **Inicialização da Q-Table:**
-   - A matriz de utilidade é carregada do arquivo `resultado.txt` ou inicializada com zeros.
+---
 
-3. **Interação com o Ambiente:**
-   - O agente escolhe uma ação com base na política epsilon-greedy.
-   - A ação é enviada ao servidor, que retorna o próximo estado e a recompensa.
+## ⚙️ Hiperparâmetros do Algoritmo
 
-4. **Atualização da Q-Table:**
-   - A matriz de utilidade é atualizada usando a equação de Bellman.
+| Parâmetro                       | Valor  |
+|---------------------------------|--------|
+| `alpha` (taxa de aprendizado)   | 0.6    |
+| `gamma` (fator de desconto)     | 0.9    |
+| `epsilon` inicial               | 0.2    |
+| `min_epsilon`                   | 0.05   |
+| `decay_rate`                    | 0.995  |
+| `epsilon_reset`                 | 0.5    |
 
-5. **Persistência:**
-   - A matriz de utilidade é salva no arquivo `resultado.txt` a cada 20 iterações.
+---
+
+## Resultados
+
+- Em testes de simulação (com `epsilon = 0`), o agente atingiu o objetivo em:
+  - ✅ 11 de 20 episódios (teste 1)
+  - ✅ 15 de 20 episódios (teste 2)
+
+Esses resultados indicam que a política aprendida é eficaz, mesmo sem atingir 100% de sucesso.
+
+---
+
+## Entregáveis
+
+- `treinamento.py`
+- `connection.py`
+- `resultado.txt` (Q-table aprendida)
+- `video.mp4` (apresentação do projeto e execução da política)
+
+---
+
+## Grupo
+
+- Ellian dos Santos Rodrigues
+- Guilherme Ribeiro Costa Carvalho
+- Guilherme Cezar Menezes Siqueira
