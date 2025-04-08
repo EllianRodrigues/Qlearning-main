@@ -1,70 +1,143 @@
+
 from connection import connect, get_state_reward
-import random as randomizer
+import random
 import numpy as np
 
-# Conexão com o servidor
+# Conecta ao jogo
 server_socket = connect(2037)
 
-# Carregar ou inicializar a matriz de utilidade
-try:
-    utility_matrix = np.loadtxt('resultado.txt')
-    print("Matriz de utilidade carregada com sucesso.")
-except OSError:
-    print("Arquivo resultado.txt não encontrado. Inicializando matriz de utilidade.")
-    utility_matrix = np.zeros((96, 3))  # 96 estados x 3 ações
+# Carrega a Q-table existente
+utility_matrix = np.loadtxt('resultado.txt')
+print("Matriz de utilidade carregada")
 
 np.set_printoptions(precision=6)
 
-actions = ["left", "right", "jump"]  # Lista de ações possíveis
+actions = ["left", "right", "jump"]
 
-initial_state = 0  # Estado inicial
-initial_reward = -14  # Recompensa inicial
+# Hiperparâmetros
+alpha = 0.6               # taxa de aprendizado
+gamma = 0.9               # fator de desconto
+epsilon = 0.2             # taxa de exploração inicial
+min_epsilon = 0.05        # mínimo para epsilon
+decay_rate = 0.995        # taxa de decaimento por passo
 
-learning_rate = 0.02  #Taxa de aprendizado (alpha)
-discount_rate = 0.5  # Fator de desconto (gamma)
-exploration_rate = 0.0  # Taxa de exploração inicial (epsilon)
-
-save_counter = 0 # controlar frequência de salvamento
+# Estatísticas
+successes = 0
+episodes = 0
 
 while True:
-    print(f"Estado atual do agente: {initial_state}")
+    print(f"\n Iniciando episódio {episodes + 1}")
+    state = 0
+    reward = -14
+    total_reward = 0
 
-    if exploration_rate > 0.35:
-        exploration_rate -= 0.001
-    print(f"Taxa de exploração atual: {exploration_rate:.3f}")
+    while True:
+        print(f"\nEstado atual: {state}")
+        print(f"Taxa de exploração (ε): {epsilon:.3f}")
 
-    if randomizer.random() < exploration_rate:
-        action_index = randomizer.randint(0, 2)
-        chosen_action = actions[action_index]
-        print(f"Ação escolhida ALEATORIAMENTE: {chosen_action}")
-    else:
-        action_index = np.argmax(utility_matrix[initial_state])
-        chosen_action = actions[action_index]
-        print(f"Ação escolhida pelo AGENTE: {chosen_action}")
+        # Escolha da ação
+        if random.random() < epsilon:
+            action_index = random.randint(0, 2)
+            chosen_action = actions[action_index]
+            print(f"Ação escolhida ALEATÓRIA: {chosen_action}")
+        else:
+            action_index = np.argmax(utility_matrix[state])
+            chosen_action = actions[action_index]
+            print(f"Ação escolhida pelo AGENTE: {chosen_action}")
 
-    # Executar a ação e obter o próximo estado e recompensa
-    state_info, reward = get_state_reward(server_socket, chosen_action)
-    print(f"Recompensa recebida: {reward}, Estado retornado: {state_info}")
+        # Executa ação
+        state_info, reward = get_state_reward(server_socket, chosen_action)
+        next_state = int(state_info[2:], 2)
+        total_reward += reward
 
-    # Processar o estado retornado
-    processed_state = int(state_info[2:], 2)
-    next_state = processed_state
-    print(f"Próximo estado processado: {next_state}")
+        # Atualiza Q-table (Bellman)
+        old_value = utility_matrix[state][action_index]
+        next_max = np.max(utility_matrix[next_state])
+        utility_matrix[state][action_index] = (1 - alpha) * old_value + alpha * (reward + gamma * next_max)
 
-    # equação de Bellman
-    print(f"Valor Q antes da atualização: {utility_matrix[initial_state][action_index]:.6f}")
-    utility_matrix[initial_state][action_index] += learning_rate * (
-        reward + discount_rate * max(utility_matrix[next_state]) - utility_matrix[initial_state][action_index]
-    )
-    print(f"Valor Q após a atualização: {utility_matrix[initial_state][action_index]:.6f}")
+        print(f"Recompensa: {reward}")
+        print(f"Próximo estado: {next_state}")
+        print(f"Valor Q antes: {old_value:.6f}")
+        print(f"Valor Q depois: {utility_matrix[state][action_index]:.6f}")
 
-    # Atualizar o estado e a recompensa atuais
-    initial_state = next_state
-    initial_reward = reward
+        # Atualiza estado
+        state = next_state
 
-    # Incrementar o contador de salvamento
-    save_counter += 1
+        # Atualiza epsilon
+        epsilon = max(min_epsilon, epsilon * decay_rate)
+        if epsilon == min_epsilon:
+            epsilon = 0.5  # reinicia se chegar no mínimo
 
-    if save_counter == 20:
-        np.savetxt('resultado.txt', utility_matrix, fmt="%.6f")
-        save_counter = 0
+        # Termina episódio se morrer ou chegar no objetivo
+        if reward == -100:
+            print("Personagem morreu")
+            break
+        elif reward == 300:
+            print("Objetivo atingido!")
+            successes += 1
+            break
+
+    # Salva Q-table após cada episódio
+    np.savetxt('resultado.txt', utility_matrix, fmt="%.6f")
+
+    episodes += 1
+    print(f"Episódios finalizados: {episodes} | Sucessos: {successes} | Taxa de acerto: {(successes / episodes) * 100:.2f}%")
+
+'''
+# Script de teste com a Q-table aprendida
+
+from connection import connect, get_state_reward
+import numpy as np
+
+# Conecta ao jogo
+server_socket = connect(2037)
+
+# Carrega a Q-table aprendida
+utility_matrix = np.loadtxt('resultado.txt')
+print("Q-table carregada com sucesso para simulação")
+
+np.set_printoptions(precision=6)
+actions = ["left", "right", "jump"]
+
+# Parâmetros da simulação
+exploration_rate = 0.0  # zero exploração
+max_episodes = 20
+successes = 0
+
+for episode in range(max_episodes):
+    print(f"\nEpisódio {episode + 1}")
+    state = 0
+    reward = -14
+    steps = 0
+
+    while True:
+        print(f"\nEstado atual: {state}")
+        print(f"Ação escolhida: ", end="")
+
+        # Escolhe a melhor ação segundo a Q-table
+        action_index = np.argmax(utility_matrix[state])
+        action = actions[action_index]
+        print(f"{action}")
+
+        state_info, reward = get_state_reward(server_socket, action)
+        print(f"Recompensa: {reward}, Novo estado (binário): {state_info}")
+
+        next_state = int(state_info[2:], 2)
+        state = next_state
+        steps += 1
+
+        if reward == 300:
+            print(f"\nObjetivo atingido em {steps} passos!")
+            successes += 1
+            break
+
+        if reward == -100:
+            print(f"\nPersonagem morreu após {steps} passos")
+            break
+
+# Resultado final
+print("\nRESULTADO DA SIMULAÇÃO FINAL")
+print(f"Total de episódios: {max_episodes}")
+print(f"Total de sucessos (chegou ao objetivo): {successes}")
+print(f"Porcentagem de sucesso: {(successes / max_episodes) * 100:.2f}%")
+'''
